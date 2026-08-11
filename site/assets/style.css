@@ -211,6 +211,14 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.team-logo {
+  flex-shrink: 0;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 12px;
 }
 
 .jersey-number {
