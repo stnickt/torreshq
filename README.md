@@ -9,7 +9,7 @@ Personal landing page for Brandon, meant to be hosted on the family Raspberry Pi
 site/               static site (edit index.html / assets/style.css / assets/script.js)
 Dockerfile          builds an nginx image serving site/
 nginx.conf          nginx server block (gzip, cache headers)
-docker-compose.yml  runs the container, published on :8081 (LAN-accessible)
+docker-compose.yml  runs the container, published on :8090 (LAN-accessible)
 deploy/deploy.sh     rsyncs the repo to the Pi and rebuilds the container
 ```
 
@@ -40,20 +40,20 @@ Requires SSH access and Docker + the Compose plugin installed on the Pi.
 ```
 
 This rsyncs the repo to `~/apps/brandon-torreshq` on the Pi and runs
-`docker compose up -d --build`, which starts the site on port `8081`, reachable
-from any device on the LAN at `http://192.168.0.20:8081` — handy for previewing
+`docker compose up -d --build`, which starts the site on port `8090`, reachable
+from any device on the LAN at `http://192.168.0.20:8090` — handy for previewing
 while you're filling in content.
 
 Once you're ready to go live on the real domain, point whatever reverse proxy
 already terminates TLS and routes `*.torreshq.com` subdomains on the Pi (e.g.
-Nginx Proxy Manager, Caddy, or a Cloudflare Tunnel) at `127.0.0.1:8081`, and
+Nginx Proxy Manager, Caddy, or a Cloudflare Tunnel) at `127.0.0.1:8090`, and
 switch the port mapping in `docker-compose.yml` back to
-`"127.0.0.1:8081:80"` so the site is no longer exposed directly on the LAN.
+`"127.0.0.1:8090:80"` so the site is no longer exposed directly on the LAN.
 For example, with a plain Caddy reverse proxy:
 
 ```
 brandon.torreshq.com {
-    reverse_proxy 127.0.0.1:8081
+    reverse_proxy 127.0.0.1:8090
 }
 ```
 

@@ -4,4 +4,4 @@ services:
     container_name: brandon-torreshq
     restart: unless-stopped
     ports:
-      - "8081:80"
+      - "8090:80"

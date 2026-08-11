@@ -16,4 +16,4 @@ rsync -avz --delete \
 echo "==> Building and starting container on the Pi"
 ssh "${PI_HOST}" "cd ${REMOTE_DIR} && docker compose up -d --build"
 
-echo "==> Done. Site is running on 127.0.0.1:8081 on the Pi."
+echo "==> Done. Site is running on 127.0.0.1:8090 on the Pi."
