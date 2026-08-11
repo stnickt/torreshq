@@ -18,9 +18,9 @@ deploy/deploy.sh     rsyncs the repo to the Pi and rebuilds the container
 Edit `site/index.html` directly:
 
 - Tagline and about text
-- Links section (GitHub/LinkedIn/Instagram hrefs)
-- Minecraft server address (`#mc-address`, hosted on the Mac mini — update the
-  hostname/port if it's not `mc.torreshq.com`)
+- Links section (Instagram href)
+- Minecraft server address (`#mc-address`, hosted on the Mac mini — currently
+  `atoms-reptiles.tun.ply.gg`)
 - Contact email
 
 ## Preview locally
