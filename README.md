@@ -20,7 +20,7 @@ Edit `site/index.html` directly:
 - Tagline and about text
 - Links section (Instagram href)
 - Minecraft server address (`#mc-address`, hosted on the Mac mini — currently
-  `atoms-reptiles.tun.ply.gg`)
+  `minecraft.torreshq.com`)
 - Contact email
 
 ## Preview locally
