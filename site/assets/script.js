@@ -34,4 +34,3 @@ function setupCopyButton(buttonId, textId) {
 }
 
 setupCopyButton("mc-copy", "mc-address");
-setupCopyButton("cal-copy", "cal-address");
