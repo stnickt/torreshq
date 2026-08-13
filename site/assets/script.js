@@ -18,15 +18,20 @@ toggle.addEventListener("click", () => {
   localStorage.setItem("theme", next);
 });
 
-const mcCopyBtn = document.getElementById("mc-copy");
-mcCopyBtn.addEventListener("click", async () => {
-  const address = document.getElementById("mc-address").textContent.trim();
-  try {
-    await navigator.clipboard.writeText(address);
-    const original = mcCopyBtn.textContent;
-    mcCopyBtn.textContent = "Copied!";
-    setTimeout(() => (mcCopyBtn.textContent = original), 1500);
-  } catch {
-    /* clipboard access blocked (e.g. insecure context); user can select the text manually */
-  }
-});
+function setupCopyButton(buttonId, textId) {
+  const button = document.getElementById(buttonId);
+  button.addEventListener("click", async () => {
+    const text = document.getElementById(textId).textContent.trim();
+    try {
+      await navigator.clipboard.writeText(text);
+      const original = button.textContent;
+      button.textContent = "Copied!";
+      setTimeout(() => (button.textContent = original), 1500);
+    } catch {
+      /* clipboard access blocked (e.g. insecure context); user can select the text manually */
+    }
+  });
+}
+
+setupCopyButton("mc-copy", "mc-address");
+setupCopyButton("cal-copy", "cal-address");
