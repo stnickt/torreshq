@@ -241,6 +241,19 @@ a:hover {
   margin: 0 0 0.25rem;
 }
 
+.calendar-embed {
+  max-width: 800px;
+}
+
+.calendar-embed iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 800 / 600;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
 .footer {
   text-align: center;
   padding: 2rem 1.5rem;
