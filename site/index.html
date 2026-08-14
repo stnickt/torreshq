@@ -76,7 +76,7 @@
     <section id="request-access" class="section">
       <h2>Request Access</h2>
       <p>Want to join the server? Send a request with your Minecraft username.</p>
-      <form id="access-form" class="access-form">
+      <form id="access-form" class="access-form" action="https://formsubmit.co/stnickt@gmail.com" method="POST">
         <label>
           Your name
           <input type="text" name="name" required autocomplete="name" />
@@ -92,6 +92,8 @@
         <input type="text" name="_honey" class="honey" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <input type="hidden" name="_subject" value="Minecraft access request" />
         <input type="hidden" name="_template" value="table" />
+        <input type="hidden" name="_captcha" value="false" />
+        <input type="hidden" name="_next" value="" />
         <button type="submit" class="btn btn-primary">Request access</button>
         <p id="access-form-status" class="hint" role="status"></p>
       </form>

@@ -35,28 +35,15 @@ function setupCopyButton(buttonId, textId) {
 
 setupCopyButton("mc-copy", "mc-address");
 
-const ACCESS_REQUEST_EMAIL = "stnickt@gmail.com";
 const accessForm = document.getElementById("access-form");
 const accessFormStatus = document.getElementById("access-form-status");
 
-accessForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const submitButton = accessForm.querySelector("button[type=submit]");
-  submitButton.disabled = true;
-  accessFormStatus.textContent = "Sending...";
+accessForm.querySelector('input[name="_next"]').value =
+  `${window.location.origin}${window.location.pathname}?requested=1#request-access`;
 
-  try {
-    const response = await fetch(`https://formsubmit.co/ajax/${ACCESS_REQUEST_EMAIL}`, {
-      method: "POST",
-      headers: { Accept: "application/json" },
-      body: new FormData(accessForm),
-    });
-    if (!response.ok) throw new Error("Request failed");
-    accessFormStatus.textContent = "Request sent — you'll hear back soon!";
-    accessForm.reset();
-  } catch {
-    accessFormStatus.textContent = "Something went wrong. Please try again in a moment.";
-  } finally {
-    submitButton.disabled = false;
-  }
-});
+if (new URLSearchParams(window.location.search).get("requested") === "1") {
+  accessFormStatus.textContent = "Request sent — you'll hear back soon!";
+  const url = new URL(window.location.href);
+  url.searchParams.delete("requested");
+  window.history.replaceState({}, "", url);
+}
