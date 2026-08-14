@@ -1,7 +1,8 @@
 # torreshq.com
 
-Personal landing page for Brandon, meant to be hosted on the family Raspberry Pi
-(`192.168.0.20`) as `torreshq.com`.
+The Torres family site, meant to be hosted on the family Raspberry Pi
+(`192.168.0.20`) as `torreshq.com`. Kid-specific subpages (Brandon's, etc.)
+are planned to live under this later.
 
 ## Structure
 
@@ -20,11 +21,10 @@ data/                SQLite DB of access requests, created on first run (gitigno
 
 Edit `site/index.html` directly:
 
-- Tagline and about text
+- Tagline and hero text
 - Links section (Instagram href)
 - Minecraft server address (`#mc-address`, hosted on the Mac mini — currently
   `minecraft.torreshq.com`)
-- Contact email
 
 ## Preview locally
 

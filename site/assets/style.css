@@ -208,40 +208,6 @@ a:hover {
   font-size: 0.9rem;
 }
 
-.soccer-card {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  flex-wrap: wrap;
-}
-
-.team-logo {
-  flex-shrink: 0;
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: 12px;
-}
-
-.jersey-number {
-  flex-shrink: 0;
-  width: 4rem;
-  height: 4rem;
-  border-radius: 12px;
-  background: var(--accent);
-  color: #fff;
-  font-weight: 800;
-  font-size: 1.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.soccer-team {
-  font-weight: 600;
-  font-size: 1.1rem;
-  margin: 0 0 0.25rem;
-}
-
 .access-form {
   display: flex;
   flex-direction: column;
