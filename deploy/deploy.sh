@@ -4,7 +4,7 @@
 set -euo pipefail
 
 PI_HOST="${1:-pi@192.168.0.20}"
-REMOTE_DIR="~/apps/brandon-torreshq"
+REMOTE_DIR="~/apps/torreshq"
 
 echo "==> Syncing files to ${PI_HOST}:${REMOTE_DIR}"
 ssh "${PI_HOST}" "mkdir -p ${REMOTE_DIR}"

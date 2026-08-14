@@ -89,7 +89,7 @@ Requires SSH access and Docker + the Compose plugin installed on the Pi.
 ./deploy/deploy.sh pi@192.168.0.20
 ```
 
-This rsyncs the repo to `~/apps/brandon-torreshq` on the Pi and runs
+This rsyncs the repo to `~/apps/torreshq` on the Pi and runs
 `docker compose up -d --build`, which starts the site on port `8090`, reachable
 from any device on the LAN at `http://192.168.0.20:8090` — handy for previewing
 while you're filling in content.
