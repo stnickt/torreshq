@@ -1,7 +1,10 @@
 import os
 import re
 import smtplib
+import sqlite3
+from datetime import datetime, timezone
 from email.message import EmailMessage
+from pathlib import Path
 
 from flask import Flask, jsonify, request
 
@@ -13,7 +16,36 @@ SMTP_USER = os.environ["SMTP_USER"]
 SMTP_PASS = os.environ["SMTP_PASS"]
 TO_EMAIL = os.environ.get("TO_EMAIL", SMTP_USER)
 
+DB_PATH = os.environ.get("DB_PATH", "/app/data/requests.db")
+
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def init_db():
+    Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                minecraft_username TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+
+
+def save_request(name, email, minecraft_username):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            "INSERT INTO requests (name, email, minecraft_username, created_at) VALUES (?, ?, ?, ?)",
+            (name, email, minecraft_username, datetime.now(timezone.utc).isoformat()),
+        )
+
+
+init_db()
 
 
 @app.post("/api/request-access")
@@ -29,6 +61,8 @@ def request_access():
 
     if not name or not email or not minecraft_username or not EMAIL_RE.match(email):
         return jsonify(ok=False, error="Please fill out all fields with a valid email."), 400
+
+    save_request(name, email, minecraft_username)
 
     message = EmailMessage()
     message["Subject"] = "Minecraft access request"

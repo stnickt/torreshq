@@ -12,6 +12,7 @@ rsync -avz --delete \
   --exclude ".git" \
   --exclude "deploy" \
   --exclude ".env" \
+  --exclude "data" \
   ./ "${PI_HOST}:${REMOTE_DIR}/"
 
 echo "==> Building and starting container on the Pi"
