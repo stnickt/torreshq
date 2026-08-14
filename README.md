@@ -1,7 +1,7 @@
-# brandon.torreshq.com
+# torreshq.com
 
 Personal landing page for Brandon, meant to be hosted on the family Raspberry Pi
-(`192.168.0.20`) as `brandon.torreshq.com`.
+(`192.168.0.20`) as `torreshq.com`.
 
 ## Structure
 
@@ -95,18 +95,25 @@ from any device on the LAN at `http://192.168.0.20:8090` — handy for previewin
 while you're filling in content.
 
 Once you're ready to go live on the real domain, point whatever reverse proxy
-already terminates TLS and routes `*.torreshq.com` subdomains on the Pi (e.g.
-Nginx Proxy Manager, Caddy, or a Cloudflare Tunnel) at `127.0.0.1:8090`, and
-switch the port mapping in `docker-compose.yml` back to
-`"127.0.0.1:8090:80"` so the site is no longer exposed directly on the LAN.
-For example, with a plain Caddy reverse proxy:
+already terminates TLS on the Pi (e.g. Nginx Proxy Manager, Caddy, or a
+Cloudflare Tunnel) at `127.0.0.1:8090`, and switch the port mapping in
+`docker-compose.yml` back to `"127.0.0.1:8090:80"` so the site is no longer
+exposed directly on the LAN. For example, with a plain Caddy reverse proxy:
 
 ```
-brandon.torreshq.com {
+torreshq.com, www.torreshq.com {
     reverse_proxy 127.0.0.1:8090
 }
 ```
 
-Also add/confirm a DNS record for `brandon.torreshq.com` pointing at wherever
-`torreshq.com`'s other subdomains resolve (the Pi's public IP or the tunnel,
-depending on how the rest of the site is set up).
+Also add/confirm DNS for the apex domain: an **A record** for `torreshq.com`
+itself (not a CNAME — most DNS providers don't allow CNAMEs at the apex)
+pointing at the Pi's public IP, or the equivalent your provider offers for
+apex records (e.g. Cloudflare's proxied "A"/CNAME flattening, or an
+ALIAS/ANAME record). Add `www.torreshq.com` as a CNAME to `torreshq.com` if
+you want the `www.` version to work too.
+
+If anything currently lives at `torreshq.com` (or other `*.torreshq.com`
+subdomains on the same reverse proxy), make sure this site's rule doesn't
+collide with it — this config only claims `torreshq.com` and
+`www.torreshq.com`, leaving other subdomains alone.
