@@ -5,3 +5,12 @@ services:
     restart: unless-stopped
     ports:
       - "8090:80"
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    container_name: brandon-torreshq-backend
+    restart: unless-stopped
+    env_file:
+      - .env

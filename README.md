@@ -7,10 +7,12 @@ Personal landing page for Brandon, meant to be hosted on the family Raspberry Pi
 
 ```
 site/               static site (edit index.html / assets/style.css / assets/script.js)
+backend/             small Flask API that emails access requests via SMTP
 Dockerfile          builds an nginx image serving site/
-nginx.conf          nginx server block (gzip, cache headers)
-docker-compose.yml  runs the container, published on :8090 (LAN-accessible)
-deploy/deploy.sh     rsyncs the repo to the Pi and rebuilds the container
+nginx.conf          nginx server block (gzip, cache headers, proxies /api/ to backend)
+docker-compose.yml  runs both containers, site published on :8090 (LAN-accessible)
+deploy/deploy.sh     rsyncs the repo to the Pi and rebuilds the containers
+.env.example         template for the backend's SMTP credentials (copy to .env on the Pi)
 ```
 
 ## Customize the content
@@ -30,6 +32,34 @@ Just open `site/index.html` in a browser, or serve it:
 ```bash
 cd site && python3 -m http.server 8000
 ```
+
+Note the "Request Access" form won't work this way since it needs the backend
++ nginx proxy — test that through the full Docker setup instead (see below).
+
+## Backend setup (Request Access emails)
+
+The Minecraft access-request form POSTs to `/api/request-access`, which nginx
+proxies to a small Flask service (`backend/`) that sends the email itself via
+SMTP — no third-party form relay involved.
+
+On the Pi, create a `.env` file in the repo root (never committed — it's in
+`.gitignore`) based on `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Then fill in:
+
+- `SMTP_USER` — the Gmail account that sends the mail. Needs a
+  [Google App Password](https://myaccount.google.com/apppasswords) (requires
+  2-Step Verification enabled), not the normal account password.
+- `SMTP_PASS` — that app password.
+- `TO_EMAIL` — where requests should land (`stnickt@gmail.com`).
+
+`docker compose up -d --build` picks up `.env` automatically for the
+`backend` service. If it's missing, the backend container will fail to start
+(`SMTP_USER`/`SMTP_PASS` are required env vars).
 
 ## Deploy to the Pi
 

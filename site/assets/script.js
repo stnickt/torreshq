@@ -38,12 +38,27 @@ setupCopyButton("mc-copy", "mc-address");
 const accessForm = document.getElementById("access-form");
 const accessFormStatus = document.getElementById("access-form-status");
 
-accessForm.querySelector('input[name="_next"]').value =
-  `${window.location.origin}${window.location.pathname}?requested=1#request-access`;
+accessForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const submitButton = accessForm.querySelector("button[type=submit]");
+  const payload = Object.fromEntries(new FormData(accessForm).entries());
 
-if (new URLSearchParams(window.location.search).get("requested") === "1") {
-  accessFormStatus.textContent = "Request sent — you'll hear back soon!";
-  const url = new URL(window.location.href);
-  url.searchParams.delete("requested");
-  window.history.replaceState({}, "", url);
-}
+  submitButton.disabled = true;
+  accessFormStatus.textContent = "Sending...";
+
+  try {
+    const response = await fetch("/api/request-access", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || "Request failed");
+    accessFormStatus.textContent = "Request sent — you'll hear back soon!";
+    accessForm.reset();
+  } catch (err) {
+    accessFormStatus.textContent = err.message || "Something went wrong. Please try again in a moment.";
+  } finally {
+    submitButton.disabled = false;
+  }
+});

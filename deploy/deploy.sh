@@ -11,6 +11,7 @@ ssh "${PI_HOST}" "mkdir -p ${REMOTE_DIR}"
 rsync -avz --delete \
   --exclude ".git" \
   --exclude "deploy" \
+  --exclude ".env" \
   ./ "${PI_HOST}:${REMOTE_DIR}/"
 
 echo "==> Building and starting container on the Pi"
