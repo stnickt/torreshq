@@ -34,3 +34,29 @@ function setupCopyButton(buttonId, textId) {
 }
 
 setupCopyButton("mc-copy", "mc-address");
+
+const ACCESS_REQUEST_EMAIL = "stnickt@gmail.com";
+const accessForm = document.getElementById("access-form");
+const accessFormStatus = document.getElementById("access-form-status");
+
+accessForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const submitButton = accessForm.querySelector("button[type=submit]");
+  submitButton.disabled = true;
+  accessFormStatus.textContent = "Sending...";
+
+  try {
+    const response = await fetch(`https://formsubmit.co/ajax/${ACCESS_REQUEST_EMAIL}`, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      body: new FormData(accessForm),
+    });
+    if (!response.ok) throw new Error("Request failed");
+    accessFormStatus.textContent = "Request sent — you'll hear back soon!";
+    accessForm.reset();
+  } catch {
+    accessFormStatus.textContent = "Something went wrong. Please try again in a moment.";
+  } finally {
+    submitButton.disabled = false;
+  }
+});

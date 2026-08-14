@@ -17,6 +17,7 @@
         <a href="#soccer">Soccer</a>
         <a href="#links">Links</a>
         <a href="#minecraft">Minecraft</a>
+        <a href="#request-access">Request Access</a>
         <a href="#calendar">Calendar</a>
         <a href="#contact">Contact</a>
       </nav>
@@ -70,6 +71,30 @@
         <code id="mc-address">minecraft.torreshq.com</code>
         <button id="mc-copy" class="btn btn-secondary" type="button">Copy</button>
       </div>
+    </section>
+
+    <section id="request-access" class="section">
+      <h2>Request Access</h2>
+      <p>Want to join the server? Send a request with your Minecraft username.</p>
+      <form id="access-form" class="access-form">
+        <label>
+          Your name
+          <input type="text" name="name" required autocomplete="name" />
+        </label>
+        <label>
+          Your email
+          <input type="email" name="email" required autocomplete="email" />
+        </label>
+        <label>
+          Minecraft username
+          <input type="text" name="minecraft_username" required autocomplete="off" />
+        </label>
+        <input type="text" name="_honey" class="honey" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <input type="hidden" name="_subject" value="Minecraft access request" />
+        <input type="hidden" name="_template" value="table" />
+        <button type="submit" class="btn btn-primary">Request access</button>
+        <p id="access-form-status" class="hint" role="status"></p>
+      </form>
     </section>
 
     <section id="calendar" class="section">
