@@ -11,7 +11,7 @@ site/               static site (edit index.html / assets/style.css / assets/scr
 backend/             small Flask API that emails access requests via SMTP
 Dockerfile          builds an nginx image serving site/
 nginx.conf          nginx server block (gzip, cache headers, proxies /api/ to backend)
-docker-compose.yml  runs both containers, site published on 127.0.0.1:8090
+docker-compose.yml  runs both containers, site published on :8090 (LAN-accessible)
 deploy/deploy.sh     rsyncs the repo to the Pi and rebuilds the containers
 .env.example         template for the backend's SMTP credentials (copy to .env on the Pi)
 data/                SQLite DB of access requests, created on first run (gitignored)
@@ -90,20 +90,28 @@ Requires SSH access and Docker + the Compose plugin installed on the Pi.
 ```
 
 This rsyncs the repo to `~/apps/torreshq` on the Pi and runs
-`docker compose up -d --build`, which starts the site bound to
-`127.0.0.1:8090` — reachable on the Pi itself, but not exposed directly on
-the LAN or the internet.
+`docker compose up -d --build`, which starts the site on port `8090`,
+reachable from any device on the LAN at `http://192.168.0.20:8090`.
 
 ## Going live (already set up)
 
 `torreshq.com` is live via a **Cloudflare Tunnel** (the Cloudflared Home
-Assistant add-on, tunnel name `TorresHome`). DNS records for `torreshq.com`
-and `www.torreshq.com` are Tunnel-routed (Proxied) in Cloudflare, and the
-add-on's Additional Hosts list maps:
+Assistant add-on, tunnel name `TorresHome`) that runs on the Home Assistant
+box (`192.168.0.174`) — a *different* machine from this site's Pi
+(`192.168.0.20`). DNS records for `torreshq.com` and `www.torreshq.com` are
+Tunnel-routed (Proxied) in Cloudflare, and the add-on's Additional Hosts list
+maps:
 
 ```
 torreshq.com -> http://192.168.0.20:8090
 ```
+
+Because the tunnel reaches the site over the LAN from a separate device
+(not from the Pi itself), `docker-compose.yml` must keep publishing `8090`
+on all interfaces (`"8090:80"`), not just `127.0.0.1` — binding to localhost
+would cut the tunnel off from reaching it. The site is still not directly
+exposed to the internet; only traffic routed through the Cloudflare Tunnel
+reaches it from outside your LAN.
 
 Other `*.torreshq.com` subdomains (`hass`, `frigate`, `mccontroller`,
 `blake`, `brandon`, `minecraft`) are routed the same way to their own
