@@ -11,7 +11,7 @@ site/               static site (edit index.html / assets/style.css / assets/scr
 backend/             small Flask API that emails access requests via SMTP
 Dockerfile          builds an nginx image serving site/
 nginx.conf          nginx server block (gzip, cache headers, proxies /api/ to backend)
-docker-compose.yml  runs both containers, site published on :8090 (LAN-accessible)
+docker-compose.yml  runs both containers, site published on 127.0.0.1:8090
 deploy/deploy.sh     rsyncs the repo to the Pi and rebuilds the containers
 .env.example         template for the backend's SMTP credentials (copy to .env on the Pi)
 data/                SQLite DB of access requests, created on first run (gitignored)
@@ -90,30 +90,25 @@ Requires SSH access and Docker + the Compose plugin installed on the Pi.
 ```
 
 This rsyncs the repo to `~/apps/torreshq` on the Pi and runs
-`docker compose up -d --build`, which starts the site on port `8090`, reachable
-from any device on the LAN at `http://192.168.0.20:8090` — handy for previewing
-while you're filling in content.
+`docker compose up -d --build`, which starts the site bound to
+`127.0.0.1:8090` — reachable on the Pi itself, but not exposed directly on
+the LAN or the internet.
 
-Once you're ready to go live on the real domain, point whatever reverse proxy
-already terminates TLS on the Pi (e.g. Nginx Proxy Manager, Caddy, or a
-Cloudflare Tunnel) at `127.0.0.1:8090`, and switch the port mapping in
-`docker-compose.yml` back to `"127.0.0.1:8090:80"` so the site is no longer
-exposed directly on the LAN. For example, with a plain Caddy reverse proxy:
+## Going live (already set up)
+
+`torreshq.com` is live via a **Cloudflare Tunnel** (the Cloudflared Home
+Assistant add-on, tunnel name `TorresHome`). DNS records for `torreshq.com`
+and `www.torreshq.com` are Tunnel-routed (Proxied) in Cloudflare, and the
+add-on's Additional Hosts list maps:
 
 ```
-torreshq.com, www.torreshq.com {
-    reverse_proxy 127.0.0.1:8090
-}
+torreshq.com -> http://192.168.0.20:8090
 ```
 
-Also add/confirm DNS for the apex domain: an **A record** for `torreshq.com`
-itself (not a CNAME — most DNS providers don't allow CNAMEs at the apex)
-pointing at the Pi's public IP, or the equivalent your provider offers for
-apex records (e.g. Cloudflare's proxied "A"/CNAME flattening, or an
-ALIAS/ANAME record). Add `www.torreshq.com` as a CNAME to `torreshq.com` if
-you want the `www.` version to work too.
+Other `*.torreshq.com` subdomains (`hass`, `frigate`, `mccontroller`,
+`blake`, `brandon`, `minecraft`) are routed the same way to their own
+services, so this site's rule only claims `torreshq.com`/`www.torreshq.com`
+and doesn't touch the others.
 
-If anything currently lives at `torreshq.com` (or other `*.torreshq.com`
-subdomains on the same reverse proxy), make sure this site's rule doesn't
-collide with it — this config only claims `torreshq.com` and
-`www.torreshq.com`, leaving other subdomains alone.
+If the tunnel or Additional Hosts config ever needs changing, that's done in
+the Cloudflared add-on's Options page in Home Assistant, not in this repo.
