@@ -34,6 +34,7 @@ function setupCopyButton(buttonId, textId) {
 }
 
 setupCopyButton("mc-copy", "mc-address");
+setupCopyButton("sports-cal-copy", "sports-cal-address");
 
 const accessForm = document.getElementById("access-form");
 const accessFormStatus = document.getElementById("access-form-status");

@@ -173,6 +173,10 @@ a:hover {
   margin-top: 0;
 }
 
+.section h3 {
+  margin-top: 2rem;
+}
+
 .link-list {
   list-style: none;
   padding: 0;
