@@ -57,14 +57,19 @@ Then fill in:
   2-Step Verification enabled), not the normal account password.
 - `SMTP_PASS` — that app password.
 - `TO_EMAIL` — where requests should land (`stnickt@gmail.com`).
+- `PUBLIC_BASE_URL` — `https://torreshq.com`, used to build the Accept/Deny
+  links in the email.
+- `RCON_HOST` / `RCON_PORT` / `RCON_PASSWORD` — see "Accept/Deny and the
+  whitelist" below. Optional — leave unset to skip whitelist automation.
 
 `docker compose up -d --build` picks up `.env` automatically for the
 `backend` service. If it's missing, the backend container will fail to start
 (`SMTP_USER`/`SMTP_PASS` are required env vars).
 
 Every request is also saved to a SQLite database at `data/requests.db`
-(bind-mounted into the container, so it survives rebuilds). To view entries,
-run this from the repo root on the Pi:
+(bind-mounted into the container, so it survives rebuilds), including its
+`status` (`pending` / `accepted` / `denied` / `accept_failed`). To view
+entries, run this from the repo root on the Pi:
 
 ```bash
 sqlite3 data/requests.db "SELECT * FROM requests ORDER BY created_at DESC;"
@@ -80,6 +85,30 @@ for row in sqlite3.connect('/app/data/requests.db').execute('SELECT * FROM reque
     print(row)
 "
 ```
+
+### Accept/Deny and the whitelist
+
+The access-request email includes **Accept** and **Deny** buttons. Clicking
+one opens a confirmation page (`/api/request-access/<id>/review`) — nothing
+happens until you actually click "Confirm" there, so email link-scanners
+(Outlook Safe Links, etc.) prefetching the link can't accidentally trigger
+an action. Confirming Deny just marks the request denied. Confirming Accept
+runs `whitelist add <username>` on the Minecraft server over RCON.
+
+For that automation to work, RCON needs to be enabled on the Mac mini
+running the server — in its `server.properties`:
+
+```
+enable-rcon=true
+rcon.port=25575
+rcon.password=<a strong password>
+```
+
+Then set `RCON_HOST` (the Mac mini's LAN IP or hostname), `RCON_PORT`, and
+`RCON_PASSWORD` (matching the value above) in `.env`. If these are left
+unset, or the server is unreachable when you click Accept, the request is
+still marked `accept_failed` and the page tells you to whitelist the
+username manually — nothing fails silently.
 
 ## Deploy to the Pi
 
