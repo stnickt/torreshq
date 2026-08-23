@@ -149,7 +149,9 @@ def request_access():
             smtp.login(SMTP_USER, SMTP_PASS)
             smtp.send_message(message)
     except smtplib.SMTPException:
-        return jsonify(ok=False, error="Failed to send email."), 502
+        # Not a 5xx: Cloudflare replaces 502/504-class origin responses with
+        # its own generic error page, hiding this message from the client.
+        return jsonify(ok=False, error="Failed to send email.")
 
     return jsonify(ok=True)
 
@@ -227,11 +229,13 @@ def confirm_request(request_id):
         result = rcon_command(RCON_HOST, RCON_PORT, RCON_PASSWORD, f"whitelist add {username}")
     except Exception as exc:
         set_status(request_id, "accept_failed")
+        # Not a 5xx: Cloudflare replaces 502/504-class origin responses with
+        # its own generic error page, hiding this message from the browser.
         return page(
             "Whitelist failed",
             f"<p>Could not reach the Minecraft server: {html.escape(str(exc))}<br>"
             f"Whitelist <b>{html.escape(username)}</b> manually.</p>",
-        ), 502
+        )
 
     set_status(request_id, "accepted")
     return page(
