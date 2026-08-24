@@ -28,7 +28,8 @@ RCON_HOST = os.environ.get("RCON_HOST")
 RCON_PORT = int(os.environ.get("RCON_PORT", "25575"))
 RCON_PASSWORD = os.environ.get("RCON_PASSWORD")
 
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY")
+
 # Allows an optional leading "." — Floodgate prefixes Bedrock players' names
 # with one, e.g. Java "stnickt" vs Bedrock ".stnickt".
 MC_USERNAME_RE = re.compile(r"^\.?[A-Za-z0-9_]{3,16}$")
@@ -42,7 +43,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS requests (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
-                email TEXT NOT NULL,
+                grade TEXT NOT NULL DEFAULT '',
                 minecraft_username TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'pending',
@@ -50,25 +51,39 @@ def init_db():
             )
             """
         )
-        # Migrate databases created before status/token existed.
+        # Migrate databases created before status/token/grade existed.
         existing_columns = {row[1] for row in conn.execute("PRAGMA table_info(requests)")}
         if "status" not in existing_columns:
             conn.execute("ALTER TABLE requests ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'")
         if "token" not in existing_columns:
             conn.execute("ALTER TABLE requests ADD COLUMN token TEXT NOT NULL DEFAULT ''")
+        if "grade" not in existing_columns:
+            conn.execute("ALTER TABLE requests ADD COLUMN grade TEXT NOT NULL DEFAULT ''")
 
 
-def save_request(name, email, minecraft_username):
+def save_request(name, grade, minecraft_username):
     token = secrets.token_urlsafe(24)
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.execute(
             """
-            INSERT INTO requests (name, email, minecraft_username, created_at, status, token)
+            INSERT INTO requests (name, grade, minecraft_username, created_at, status, token)
             VALUES (?, ?, ?, ?, 'pending', ?)
             """,
-            (name, email, minecraft_username, datetime.now(timezone.utc).isoformat(), token),
+            (name, grade, minecraft_username, datetime.now(timezone.utc).isoformat(), token),
         )
         return cursor.lastrowid, token
+
+
+def list_requests():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            SELECT id, name, grade, minecraft_username, created_at, status
+            FROM requests ORDER BY created_at DESC
+            """
+        ).fetchall()
+        return [dict(row) for row in rows]
 
 
 def get_request(request_id):
@@ -106,16 +121,19 @@ def request_access():
         return jsonify(ok=True)
 
     name = (data.get("name") or "").strip()
-    email = (data.get("email") or "").strip()
+    grade = (data.get("grade") or "").strip()
     minecraft_username = (data.get("minecraft_username") or "").strip()
 
-    if not name or not email or not minecraft_username or not EMAIL_RE.match(email):
-        return jsonify(ok=False, error="Please fill out all fields with a valid email."), 400
+    if not name or not grade or not minecraft_username:
+        return jsonify(ok=False, error="Please fill out all fields."), 400
+
+    if len(grade) > 20:
+        return jsonify(ok=False, error="That doesn't look like a valid grade."), 400
 
     if not MC_USERNAME_RE.match(minecraft_username):
         return jsonify(ok=False, error="That doesn't look like a valid Minecraft username."), 400
 
-    request_id, token = save_request(name, email, minecraft_username)
+    request_id, token = save_request(name, grade, minecraft_username)
 
     accept_url = f"{PUBLIC_BASE_URL}/api/request-access/{request_id}/review?token={token}&action=accept"
     deny_url = f"{PUBLIC_BASE_URL}/api/request-access/{request_id}/review?token={token}&action=deny"
@@ -124,16 +142,15 @@ def request_access():
     message["Subject"] = "Minecraft access request"
     message["From"] = SMTP_USER
     message["To"] = TO_EMAIL
-    message["Reply-To"] = email
     message.set_content(
-        f"Name: {name}\nEmail: {email}\nMinecraft username: {minecraft_username}\n\n"
+        f"Name: {name}\nGrade: {grade}\nMinecraft username: {minecraft_username}\n\n"
         f"Accept: {accept_url}\nDeny: {deny_url}\n"
     )
     message.add_alternative(
         f"""
         <div style="font-family:-apple-system,sans-serif">
           <p><b>Name:</b> {html.escape(name)}<br>
-             <b>Email:</b> {html.escape(email)}<br>
+             <b>Grade:</b> {html.escape(grade)}<br>
              <b>Minecraft username:</b> {html.escape(minecraft_username)}</p>
           <p>
             <a href="{accept_url}" style="background:#0b8043;color:#fff;padding:.6rem 1.2rem;
@@ -181,7 +198,7 @@ def review_request(request_id):
         f"{verb} access request?",
         f"""
         <p><b>Name:</b> {html.escape(row['name'])}<br>
-           <b>Email:</b> {html.escape(row['email'])}<br>
+           <b>Grade:</b> {html.escape(row['grade'])}<br>
            <b>Minecraft username:</b> {html.escape(row['minecraft_username'])}</p>
         <form method="POST" action="/api/request-access/{request_id}/confirm">
           <input type="hidden" name="token" value="{html.escape(token)}">
@@ -277,3 +294,12 @@ def confirm_request(request_id):
         else ""
     )
     return page("Accepted", f"<p>Whitelisted:</p><ul>{items}</ul>{note}")
+
+
+@app.get("/api/requests")
+def list_requests_endpoint():
+    key = request.headers.get("X-Admin-Key", "")
+    if not ADMIN_API_KEY or not hmac.compare_digest(ADMIN_API_KEY, key):
+        return jsonify(ok=False, error="Unauthorized"), 403
+
+    return jsonify(ok=True, requests=list_requests())

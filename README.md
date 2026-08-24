@@ -64,6 +64,9 @@ Then fill in:
   links in the email.
 - `RCON_HOST` / `RCON_PORT` / `RCON_PASSWORD` — see "Accept/Deny and the
   whitelist" below. Optional — leave unset to skip whitelist automation.
+- `ADMIN_API_KEY` — required for `GET /api/requests` (returns all requests as
+  JSON, used by the mccontroller panel's grid view). Generate with
+  `openssl rand -hex 32`; the endpoint always returns 403 without it.
 
 `docker compose up -d --build` picks up `.env` automatically for the
 `backend` service. If it's missing, the backend container will fail to start
@@ -112,6 +115,17 @@ Then set `RCON_HOST` (the Mac mini's LAN IP or hostname), `RCON_PORT`, and
 unset, or the server is unreachable when you click Accept, the request is
 still marked `accept_failed` and the page tells you to whitelist the
 username manually — nothing fails silently.
+
+### Listing requests for mccontroller
+
+`GET /api/requests` returns every request as JSON (id, name, grade,
+minecraft_username, created_at, status — no tokens), for the mccontroller
+panel's grid view. Requires the `X-Admin-Key` header to match `ADMIN_API_KEY`;
+returns 403 otherwise. Example:
+
+```bash
+curl -H "X-Admin-Key: <value from .env>" https://torreshq.com/api/requests
+```
 
 ## Deploy to the Pi
 
