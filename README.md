@@ -127,6 +127,21 @@ returns 403 otherwise. Example:
 curl -H "X-Admin-Key: <value from .env>" https://torreshq.com/api/requests
 ```
 
+`POST /api/requests/<id>/decide` lets mccontroller act on a request directly
+(same `X-Admin-Key` auth), instead of going through the emailed token link.
+Body: `{"action": "accept"}` or `{"action": "deny"}`. Runs the same
+whitelist-both-forms logic as the email Accept flow. Responses:
+
+```bash
+curl -X POST -H "X-Admin-Key: <value from .env>" -H "Content-Type: application/json" \
+  -d '{"action":"accept"}' https://torreshq.com/api/requests/3/decide
+```
+
+- `{"ok": true, "status": "accepted", "whitelisted": ["name", ".name"]}` — success (only the form(s) actually confirmed appear in `whitelisted`)
+- `{"ok": true, "status": "denied"}` — deny always succeeds
+- `{"ok": false, "status": "accept_failed", "error": "..."}` — RCON unreachable, not configured, or neither username form was confirmed
+- `409` with `{"ok": false, "error": "Already <status>", "status": "..."}` — request was already decided (not still `pending`)
+
 ## Deploy to the Pi
 
 Requires SSH access and Docker + the Compose plugin installed on the Pi.

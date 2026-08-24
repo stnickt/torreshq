@@ -209,6 +209,99 @@ def review_request(request_id):
     )
 
 
+def try_whitelist(username):
+    """Attempts "whitelist add" for both the Java and Bedrock (Floodgate
+    "."-prefixed) forms of username. Returns (confirmed, unconfirmed,
+    unreachable) lists of (variant, detail) tuples."""
+    base_username = username[1:] if username.startswith(".") else username
+    variants = [base_username, f".{base_username}"]
+
+    confirmed = []  # server said "Added <name> to the whitelist"
+    unconfirmed = []  # ran without a connection error, but wasn't confirmed added
+    unreachable = []  # RCON connection itself failed
+    for variant in variants:
+        try:
+            result = rcon_command(RCON_HOST, RCON_PORT, RCON_PASSWORD, f"whitelist add {variant}")
+        except Exception as exc:
+            unreachable.append((variant, str(exc)))
+            continue
+        if result.strip().lower().startswith("added"):
+            confirmed.append((variant, result))
+        else:
+            unconfirmed.append((variant, result))
+    return confirmed, unconfirmed, unreachable
+
+
+def process_accept(request_id, username):
+    """Runs the whitelist attempt for an Accept decision, updates the
+    request's status accordingly, and returns a dict describing what
+    happened so callers (HTML page, JSON API) can render it their own way."""
+    if not MC_USERNAME_RE.match(username):
+        set_status(request_id, "accept_failed")
+        return {"outcome": "invalid_username"}
+
+    if not RCON_HOST or not RCON_PASSWORD:
+        set_status(request_id, "accept_failed")
+        return {"outcome": "rcon_not_configured"}
+
+    confirmed, unconfirmed, unreachable = try_whitelist(username)
+    result = {"outcome": "accepted", "confirmed": confirmed, "unconfirmed": unconfirmed, "unreachable": unreachable}
+
+    if not confirmed and unreachable and not unconfirmed:
+        result["outcome"] = "unreachable"
+    elif not confirmed:
+        result["outcome"] = "unconfirmed"
+
+    set_status(request_id, "accepted" if result["outcome"] == "accepted" else "accept_failed")
+    return result
+
+
+def render_accept_page(username, result):
+    outcome = result["outcome"]
+
+    if outcome == "invalid_username":
+        return page("Error", "<p>Stored username looks invalid — whitelist it manually.</p>"), 400
+
+    if outcome == "rcon_not_configured":
+        return page(
+            "RCON not configured",
+            f"<p>Accepted, but RCON_HOST/RCON_PASSWORD aren't set — "
+            f"whitelist <b>{html.escape(username)}</b> manually.</p>",
+        )
+
+    base_username = username[1:] if username.startswith(".") else username
+    confirmed, unconfirmed, unreachable = result["confirmed"], result["unconfirmed"], result["unreachable"]
+
+    if outcome == "unreachable":
+        # Not a 5xx: Cloudflare replaces 502/504-class origin responses with
+        # its own generic error page, hiding this message from the browser.
+        return page(
+            "Whitelist failed",
+            f"<p>Could not reach the Minecraft server: {html.escape(unreachable[0][1])}<br>"
+            f"Whitelist <b>{html.escape(base_username)}</b> (and <b>.{html.escape(base_username)}</b>"
+            f" if they're on Bedrock) manually.</p>",
+        )
+
+    if outcome == "unconfirmed":
+        items = "".join(f"<li><b>{html.escape(v)}</b>: {html.escape(r)}</li>" for v, r in unconfirmed)
+        return page(
+            "Could not confirm whitelist",
+            f"<p>The server responded, but neither form was confirmed added — check for a typo, or "
+            f"that the account actually exists:</p><ul>{items}</ul>"
+            f"<p>Whitelist manually once you've confirmed the right name.</p>",
+        )
+
+    items = "".join(f"<li><b>{html.escape(v)}</b>: {html.escape(r)}</li>" for v, r in confirmed)
+    other = unconfirmed + unreachable
+    note = (
+        f"<p>Note: <b>{html.escape(other[0][0])}</b> wasn't added ({html.escape(other[0][1])}) — "
+        f"that's expected if it's not the edition they play on.</p>"
+        if other
+        else ""
+    )
+    return page("Accepted", f"<p>Whitelisted:</p><ul>{items}</ul>{note}")
+
+
 @app.post("/api/request-access/<int:request_id>/confirm")
 def confirm_request(request_id):
     token = request.form.get("token", "")
@@ -232,68 +325,8 @@ def confirm_request(request_id):
         return page("Denied", f"<p>Denied access for <b>{html.escape(row['minecraft_username'])}</b>.</p>")
 
     username = row["minecraft_username"]
-    if not MC_USERNAME_RE.match(username):
-        set_status(request_id, "accept_failed")
-        return page("Error", "<p>Stored username looks invalid — whitelist it manually.</p>"), 400
-
-    if not RCON_HOST or not RCON_PASSWORD:
-        set_status(request_id, "accept_failed")
-        return page(
-            "RCON not configured",
-            f"<p>Accepted, but RCON_HOST/RCON_PASSWORD aren't set — "
-            f"whitelist <b>{html.escape(username)}</b> manually.</p>",
-        )
-
-    # We don't know if this is a Java or Bedrock (Floodgate-prefixed) player,
-    # so whitelist both forms of the name to cover either case.
-    base_username = username[1:] if username.startswith(".") else username
-    variants = [base_username, f".{base_username}"]
-
-    confirmed = []  # server said "Added <name> to the whitelist"
-    unconfirmed = []  # ran without a connection error, but wasn't confirmed added
-    unreachable = []  # RCON connection itself failed
-    for variant in variants:
-        try:
-            result = rcon_command(RCON_HOST, RCON_PORT, RCON_PASSWORD, f"whitelist add {variant}")
-        except Exception as exc:
-            unreachable.append((variant, str(exc)))
-            continue
-        if result.strip().lower().startswith("added"):
-            confirmed.append((variant, result))
-        else:
-            unconfirmed.append((variant, result))
-
-    if not confirmed and unreachable and not unconfirmed:
-        set_status(request_id, "accept_failed")
-        # Not a 5xx: Cloudflare replaces 502/504-class origin responses with
-        # its own generic error page, hiding this message from the browser.
-        return page(
-            "Whitelist failed",
-            f"<p>Could not reach the Minecraft server: {html.escape(unreachable[0][1])}<br>"
-            f"Whitelist <b>{html.escape(base_username)}</b> (and <b>.{html.escape(base_username)}</b>"
-            f" if they're on Bedrock) manually.</p>",
-        )
-
-    if not confirmed:
-        set_status(request_id, "accept_failed")
-        items = "".join(f"<li><b>{html.escape(v)}</b>: {html.escape(r)}</li>" for v, r in unconfirmed)
-        return page(
-            "Could not confirm whitelist",
-            f"<p>The server responded, but neither form was confirmed added — check for a typo, or "
-            f"that the account actually exists:</p><ul>{items}</ul>"
-            f"<p>Whitelist manually once you've confirmed the right name.</p>",
-        )
-
-    set_status(request_id, "accepted")
-    items = "".join(f"<li><b>{html.escape(v)}</b>: {html.escape(r)}</li>" for v, r in confirmed)
-    other = unconfirmed + unreachable
-    note = (
-        f"<p>Note: <b>{html.escape(other[0][0])}</b> wasn't added ({html.escape(other[0][1])}) — "
-        f"that's expected if it's not the edition they play on.</p>"
-        if other
-        else ""
-    )
-    return page("Accepted", f"<p>Whitelisted:</p><ul>{items}</ul>{note}")
+    result = process_accept(request_id, username)
+    return render_accept_page(username, result)
 
 
 @app.get("/api/requests")
@@ -303,3 +336,38 @@ def list_requests_endpoint():
         return jsonify(ok=False, error="Unauthorized"), 403
 
     return jsonify(ok=True, requests=list_requests())
+
+
+@app.post("/api/requests/<int:request_id>/decide")
+def decide_request(request_id):
+    key = request.headers.get("X-Admin-Key", "")
+    if not ADMIN_API_KEY or not hmac.compare_digest(ADMIN_API_KEY, key):
+        return jsonify(ok=False, error="Unauthorized"), 403
+
+    data = request.get_json(silent=True) or {}
+    action = data.get("action", "")
+    if action not in ("accept", "deny"):
+        return jsonify(ok=False, error="action must be 'accept' or 'deny'"), 400
+
+    row = get_request(request_id)
+    if row is None:
+        return jsonify(ok=False, error="Not found"), 404
+
+    if row["status"] != "pending":
+        return jsonify(ok=False, error=f"Already {row['status']}", status=row["status"]), 409
+
+    if action == "deny":
+        set_status(request_id, "denied")
+        return jsonify(ok=True, status="denied")
+
+    result = process_accept(request_id, row["minecraft_username"])
+    if result["outcome"] == "accepted":
+        return jsonify(ok=True, status="accepted", whitelisted=[v for v, _ in result["confirmed"]])
+
+    error_messages = {
+        "invalid_username": "Stored username looks invalid.",
+        "rcon_not_configured": "RCON isn't configured on the server — whitelist manually.",
+        "unreachable": f"Could not reach the Minecraft server: {result['unreachable'][0][1]}",
+        "unconfirmed": "Neither the Java nor Bedrock form was confirmed added — check the username.",
+    }
+    return jsonify(ok=False, error=error_messages[result["outcome"]], status="accept_failed")
