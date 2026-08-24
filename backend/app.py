@@ -29,7 +29,9 @@ RCON_PORT = int(os.environ.get("RCON_PORT", "25575"))
 RCON_PASSWORD = os.environ.get("RCON_PASSWORD")
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-MC_USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,16}$")
+# Allows an optional leading "." — Floodgate prefixes Bedrock players' names
+# with one, e.g. Java "stnickt" vs Bedrock ".stnickt".
+MC_USERNAME_RE = re.compile(r"^\.?[A-Za-z0-9_]{3,16}$")
 
 
 def init_db():
@@ -225,20 +227,37 @@ def confirm_request(request_id):
             f"whitelist <b>{html.escape(username)}</b> manually.</p>",
         )
 
-    try:
-        result = rcon_command(RCON_HOST, RCON_PORT, RCON_PASSWORD, f"whitelist add {username}")
-    except Exception as exc:
+    # We don't know if this is a Java or Bedrock (Floodgate-prefixed) player,
+    # so whitelist both forms of the name to cover either case.
+    base_username = username[1:] if username.startswith(".") else username
+    variants = [base_username, f".{base_username}"]
+
+    succeeded = []
+    failed = []
+    for variant in variants:
+        try:
+            result = rcon_command(RCON_HOST, RCON_PORT, RCON_PASSWORD, f"whitelist add {variant}")
+            succeeded.append((variant, result))
+        except Exception as exc:
+            failed.append((variant, str(exc)))
+
+    if not succeeded:
         set_status(request_id, "accept_failed")
         # Not a 5xx: Cloudflare replaces 502/504-class origin responses with
         # its own generic error page, hiding this message from the browser.
         return page(
             "Whitelist failed",
-            f"<p>Could not reach the Minecraft server: {html.escape(str(exc))}<br>"
-            f"Whitelist <b>{html.escape(username)}</b> manually.</p>",
+            f"<p>Could not reach the Minecraft server: {html.escape(failed[0][1])}<br>"
+            f"Whitelist <b>{html.escape(base_username)}</b> (and <b>.{html.escape(base_username)}</b>"
+            f" if they're on Bedrock) manually.</p>",
         )
 
     set_status(request_id, "accepted")
-    return page(
-        "Accepted",
-        f"<p>Whitelisted <b>{html.escape(username)}</b>.</p><p><code>{html.escape(result)}</code></p>",
+    items = "".join(f"<li><b>{html.escape(v)}</b>: {html.escape(r)}</li>" for v, r in succeeded)
+    note = (
+        f"<p>Note: also tried <b>{html.escape(failed[0][0])}</b> but that failed — that's expected "
+        f"if it's not the edition they play on.</p>"
+        if failed
+        else ""
     )
+    return page("Accepted", f"<p>Whitelisted both forms, covering Java and Bedrock:</p><ul>{items}</ul>{note}")
