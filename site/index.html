@@ -37,9 +37,21 @@
     <section id="minecraft" class="section">
       <h2>Minecraft Server</h2>
       <p>Join the server hosted on the Mac mini:</p>
+
+      <p class="hint">Java Edition — no port needed:</p>
       <div class="server-address">
-        <code id="mc-address">minecraft.torreshq.com</code>
-        <button id="mc-copy" class="btn btn-secondary" type="button">Copy</button>
+        <code id="mc-java-address">mcjava.torreshq.com</code>
+        <button id="mc-java-copy" class="btn btn-secondary" type="button">Copy</button>
+      </div>
+
+      <p class="hint mc-edition-label">Bedrock Edition — address and port both required:</p>
+      <div class="server-address">
+        <code id="mc-bedrock-address">mcbedrock.torreshq.com</code>
+        <button id="mc-bedrock-copy" class="btn btn-secondary" type="button">Copy</button>
+      </div>
+      <div class="server-address mc-bedrock-port-row">
+        <code id="mc-bedrock-port">49980</code>
+        <button id="mc-bedrock-port-copy" class="btn btn-secondary" type="button">Copy</button>
       </div>
     </section>
 

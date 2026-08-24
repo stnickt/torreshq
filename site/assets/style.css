@@ -198,6 +198,14 @@ a:hover {
   flex-wrap: wrap;
 }
 
+.mc-edition-label {
+  margin-top: 1.25rem;
+}
+
+.mc-bedrock-port-row {
+  margin-top: 0.5rem;
+}
+
 .server-address code {
   background: var(--bg-alt);
   border: 1px solid var(--border);

@@ -23,8 +23,11 @@ Edit `site/index.html` directly:
 
 - Tagline and hero text
 - Links section (Instagram href)
-- Minecraft server address (`#mc-address`, hosted on the Mac mini — currently
-  `minecraft.torreshq.com`)
+- Minecraft server addresses, hosted on the Mac mini — Java (`#mc-java-address`,
+  currently `mcjava.torreshq.com`, no port needed) and Bedrock
+  (`#mc-bedrock-address` / `#mc-bedrock-port`, currently `mcbedrock.torreshq.com`
+  port `49980` — Bedrock has no SRV-record shortcut, so the port must be kept
+  in sync with whatever playit.gg assigns the Bedrock tunnel)
 
 ## Preview locally
 

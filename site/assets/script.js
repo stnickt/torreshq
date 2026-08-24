@@ -33,7 +33,9 @@ function setupCopyButton(buttonId, textId) {
   });
 }
 
-setupCopyButton("mc-copy", "mc-address");
+setupCopyButton("mc-java-copy", "mc-java-address");
+setupCopyButton("mc-bedrock-copy", "mc-bedrock-address");
+setupCopyButton("mc-bedrock-port-copy", "mc-bedrock-port");
 setupCopyButton("sports-cal-copy", "sports-cal-address");
 
 const accessForm = document.getElementById("access-form");
