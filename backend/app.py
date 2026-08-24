@@ -232,32 +232,48 @@ def confirm_request(request_id):
     base_username = username[1:] if username.startswith(".") else username
     variants = [base_username, f".{base_username}"]
 
-    succeeded = []
-    failed = []
+    confirmed = []  # server said "Added <name> to the whitelist"
+    unconfirmed = []  # ran without a connection error, but wasn't confirmed added
+    unreachable = []  # RCON connection itself failed
     for variant in variants:
         try:
             result = rcon_command(RCON_HOST, RCON_PORT, RCON_PASSWORD, f"whitelist add {variant}")
-            succeeded.append((variant, result))
         except Exception as exc:
-            failed.append((variant, str(exc)))
+            unreachable.append((variant, str(exc)))
+            continue
+        if result.strip().lower().startswith("added"):
+            confirmed.append((variant, result))
+        else:
+            unconfirmed.append((variant, result))
 
-    if not succeeded:
+    if not confirmed and unreachable and not unconfirmed:
         set_status(request_id, "accept_failed")
         # Not a 5xx: Cloudflare replaces 502/504-class origin responses with
         # its own generic error page, hiding this message from the browser.
         return page(
             "Whitelist failed",
-            f"<p>Could not reach the Minecraft server: {html.escape(failed[0][1])}<br>"
+            f"<p>Could not reach the Minecraft server: {html.escape(unreachable[0][1])}<br>"
             f"Whitelist <b>{html.escape(base_username)}</b> (and <b>.{html.escape(base_username)}</b>"
             f" if they're on Bedrock) manually.</p>",
         )
 
+    if not confirmed:
+        set_status(request_id, "accept_failed")
+        items = "".join(f"<li><b>{html.escape(v)}</b>: {html.escape(r)}</li>" for v, r in unconfirmed)
+        return page(
+            "Could not confirm whitelist",
+            f"<p>The server responded, but neither form was confirmed added — check for a typo, or "
+            f"that the account actually exists:</p><ul>{items}</ul>"
+            f"<p>Whitelist manually once you've confirmed the right name.</p>",
+        )
+
     set_status(request_id, "accepted")
-    items = "".join(f"<li><b>{html.escape(v)}</b>: {html.escape(r)}</li>" for v, r in succeeded)
+    items = "".join(f"<li><b>{html.escape(v)}</b>: {html.escape(r)}</li>" for v, r in confirmed)
+    other = unconfirmed + unreachable
     note = (
-        f"<p>Note: also tried <b>{html.escape(failed[0][0])}</b> but that failed — that's expected "
-        f"if it's not the edition they play on.</p>"
-        if failed
+        f"<p>Note: <b>{html.escape(other[0][0])}</b> wasn't added ({html.escape(other[0][1])}) — "
+        f"that's expected if it's not the edition they play on.</p>"
+        if other
         else ""
     )
-    return page("Accepted", f"<p>Whitelisted both forms, covering Java and Bedrock:</p><ul>{items}</ul>{note}")
+    return page("Accepted", f"<p>Whitelisted:</p><ul>{items}</ul>{note}")
